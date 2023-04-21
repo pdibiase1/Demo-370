@@ -1,0 +1,99 @@
+package demo370;
+
+import java.util.HashMap;
+import java.util.Map;
+
+public class SimpleSemanticAnalyzer {
+    private enum ValueType {
+        NUMBER, UNDEFINED
+    }
+
+    private static class Value {
+        ValueType type;
+        int numberValue;
+
+        Value() {
+            this.type = ValueType.UNDEFINED;
+        }
+
+        Value(int numberValue) {
+            this.type = ValueType.NUMBER;
+            this.numberValue = numberValue;
+        }
+    }
+
+    private String input;
+    private int pos;
+    private Map<String, Value> variables;
+
+    public SimpleSemanticAnalyzer(String input) {
+        this.input = input.replaceAll("\\s+", "");
+        this.pos = 0;
+        this.variables = new HashMap<>();
+    }
+
+    private char peek() {
+        return pos < input.length() ? input.charAt(pos) : '\0';
+    }
+
+    private char consume() {
+        return input.charAt(pos++);
+    }
+
+    private Value expression() {
+        Value value = term();
+        while (peek() == '+' || peek() == '-') {
+            char operator = consume();
+            Value rightValue = term();
+            checkTypeCompatibility(value, rightValue);
+            value = applyArithmeticOperation(value, rightValue, operator);
+        }
+        return value;
+    }
+
+    // ... (other methods like term(), factor(), number(), and variable() are the same as in the previous example) ...
+
+    private void checkTypeCompatibility(Value leftValue, Value rightValue) {
+        if (leftValue.type != rightValue.type) {
+            throw new RuntimeException("Type error: incompatible types in operation");
+        }
+    }
+
+    private Value applyArithmeticOperation(Value leftValue, Value rightValue, char operator) {
+        switch (operator) {
+            case '+':
+                return new Value(leftValue.numberValue + rightValue.numberValue);
+            case '-':
+                return new Value(leftValue.numberValue - rightValue.numberValue);
+            case '*':
+                return new Value(leftValue.numberValue * rightValue.numberValue);
+            case '/':
+                if (rightValue.numberValue == 0) {
+                    throw new RuntimeException("Semantic error: division by zero");
+                }
+                return new Value(leftValue.numberValue / rightValue.numberValue);
+            default:
+                throw new RuntimeException("Unexpected operator: " + operator);
+        }
+    }
+
+    public Value evaluate() {
+        Value result = expression();
+        if (result.type == ValueType.UNDEFINED) {
+            throw new RuntimeException("Semantic error: undefined variable in expression");
+        }
+        return result;
+    }
+
+    public void setVariable(String name, int value) {
+        variables.put(name, new Value(value));
+    }
+
+    public static void main(String[] args) {
+        SimpleSemanticAnalyzer analyzer = new SimpleSemanticAnalyzer("x * (y + 2) - 3");
+        analyzer.setVariable("x", 10);
+        analyzer.setVariable("y", 5);
+        Value result = analyzer.evaluate();
+        System.out.println(result.numberValue); // Output: 67
+    }
+}
